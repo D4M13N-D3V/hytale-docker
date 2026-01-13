@@ -47,6 +47,14 @@ download_server() {
 
     cd /opt/hytale
 
+    # Restore cached credentials if they exist
+    CREDS_FILE=".hytale-downloader-credentials.json"
+    CREDS_CACHE="${DATA_DIR}/config/${CREDS_FILE}"
+    if [ -f "$CREDS_CACHE" ]; then
+        log_info "Restoring cached downloader credentials..."
+        cp "$CREDS_CACHE" "/opt/hytale/${CREDS_FILE}"
+    fi
+
     # Set patchline argument
     PATCHLINE_ARG=""
     if [ "$PATCHLINE" = "pre-release" ]; then
@@ -62,6 +70,12 @@ download_server() {
     else
         log_error "Failed to download server files"
         exit 1
+    fi
+
+    # Cache the credentials for next restart (they may have been refreshed)
+    if [ -f "/opt/hytale/${CREDS_FILE}" ]; then
+        log_info "Caching downloader credentials for future restarts..."
+        cp "/opt/hytale/${CREDS_FILE}" "$CREDS_CACHE"
     fi
 
     # List files in download directory for debugging

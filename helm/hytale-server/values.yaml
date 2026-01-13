@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/d4m13n-d3v/hytale-docker
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 
