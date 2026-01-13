@@ -280,22 +280,11 @@ main() {
     cd "${SERVER_DIR}/Server" 2>/dev/null || cd "${SERVER_DIR}"
 
     log_info "Starting Hytale Server..."
+    log_info "Use '/auth login' in the console to authenticate the server for player connections"
 
-    # Start server in background to handle signals
-    eval java ${JVM_ARGS} -jar HytaleServer.jar ${SERVER_ARGS} &
-    SERVER_PID=$!
-
-    log_info "Server started with PID: ${SERVER_PID}"
-
-    # Wait for server process
-    wait $SERVER_PID
-    EXIT_CODE=$?
-
-    # Save any new config files
-    save_configs
-
-    log_info "Server exited with code: ${EXIT_CODE}"
-    exit $EXIT_CODE
+    # Run server in foreground with exec so it receives stdin for console commands
+    # This replaces the shell process, allowing interactive console access
+    exec java ${JVM_ARGS} -jar HytaleServer.jar ${SERVER_ARGS}
 }
 
 main "$@"
