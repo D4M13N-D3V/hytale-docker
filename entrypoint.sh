@@ -230,6 +230,12 @@ build_server_args() {
         SERVER_ARGS="${SERVER_ARGS} --identity-token \"${HYTALE_SERVER_IDENTITY_TOKEN}\""
     fi
 
+    # Auto-trigger auth login on boot if no tokens provided and in authenticated mode
+    if [ -z "$HYTALE_SERVER_SESSION_TOKEN" ] && [ "$AUTH_MODE" = "authenticated" ]; then
+        SERVER_ARGS="${SERVER_ARGS} --boot-command \"/auth login\""
+        log_info "No session token provided - will trigger /auth login on boot"
+    fi
+
     # Backup configuration
     if [ "$ENABLE_BACKUP" = "true" ]; then
         SERVER_ARGS="${SERVER_ARGS} --backup --backup-dir ${DATA_DIR}/backups --backup-frequency ${BACKUP_FREQUENCY}"
