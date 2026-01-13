@@ -64,16 +64,28 @@ download_server() {
         exit 1
     fi
 
+    # Find and extract the downloaded zip file
+    DOWNLOAD_ZIP=$(ls -t *.zip 2>/dev/null | head -1)
+    if [ -n "$DOWNLOAD_ZIP" ] && [ -f "$DOWNLOAD_ZIP" ]; then
+        log_info "Extracting $DOWNLOAD_ZIP..."
+        unzip -o "$DOWNLOAD_ZIP" -d /opt/hytale/extracted
+        log_info "Extraction complete"
+    fi
+
     # Move downloaded files to server directory
     mkdir -p "${SERVER_DIR}"
 
-    # Find and move the downloaded files
-    if [ -d "Server" ]; then
-        cp -r Server "${SERVER_DIR}/"
-    fi
-    if [ -f "Assets.zip" ]; then
-        cp Assets.zip "${SERVER_DIR}/"
-    fi
+    # Check extracted directory first, then current directory
+    for src_dir in /opt/hytale/extracted /opt/hytale; do
+        if [ -d "${src_dir}/Server" ]; then
+            log_info "Copying Server from ${src_dir}..."
+            cp -r "${src_dir}/Server" "${SERVER_DIR}/"
+        fi
+        if [ -f "${src_dir}/Assets.zip" ]; then
+            log_info "Copying Assets.zip from ${src_dir}..."
+            cp "${src_dir}/Assets.zip" "${SERVER_DIR}/"
+        fi
+    done
 }
 
 # Create symlinks for persistent data

@@ -96,6 +96,32 @@ spec:
             - name: backups
               mountPath: /data/backups
             {{- end }}
+        {{- if .Values.playit.enabled }}
+        - name: playit
+          image: "{{ .Values.playit.image.repository }}:{{ .Values.playit.image.tag }}"
+          imagePullPolicy: {{ .Values.playit.image.pullPolicy }}
+          env:
+            - name: SECRET_KEY
+              {{- if .Values.playit.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.playit.existingSecret }}
+                  key: secret-key
+              {{- else }}
+              value: {{ .Values.playit.secretKey | quote }}
+              {{- end }}
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+        {{- end }}
+      {{- if .Values.playit.enabled }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
