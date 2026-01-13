@@ -233,7 +233,8 @@ build_server_args() {
     # Auto-trigger auth login on boot if no tokens provided and in authenticated mode
     if [ -z "$HYTALE_SERVER_SESSION_TOKEN" ] && [ "$AUTH_MODE" = "authenticated" ]; then
         SERVER_ARGS="${SERVER_ARGS} --boot-command \"/auth login\""
-        log_info "No session token provided - will trigger /auth login on boot"
+        # Log to stderr so it doesn't get captured in the args
+        echo -e "${GREEN}[INFO]${NC} No session token provided - will trigger /auth login on boot" >&2
     fi
 
     # Backup configuration
