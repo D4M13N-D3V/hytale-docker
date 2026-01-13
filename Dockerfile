@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for running the server
-RUN groupadd -g 1000 hytale && \
-    useradd -u 1000 -g hytale -m -s /bin/bash hytale
+RUN groupadd -g 1001 hytale && \
+    useradd -u 1001 -g hytale -m -s /bin/bash hytale
 
 # Set up directories
 RUN mkdir -p /opt/hytale /data/universe /data/mods /data/logs /data/config /data/backups && \
