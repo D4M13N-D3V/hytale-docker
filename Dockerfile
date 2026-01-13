@@ -23,8 +23,10 @@ RUN mkdir -p /opt/hytale /data/universe /data/mods /data/logs /data/config /data
 
 WORKDIR /opt/hytale
 
-# Download hytale-downloader
-RUN curl -fsSL https://downloader.hytale.com/hytale-downloader.zip -o /tmp/hytale-downloader.zip && \
+# Download hytale-downloader (with retry)
+RUN for i in 1 2 3; do \
+      curl -fsSL https://downloader.hytale.com/hytale-downloader.zip -o /tmp/hytale-downloader.zip && break || sleep 5; \
+    done && \
     unzip /tmp/hytale-downloader.zip -d /opt/hytale && \
     chmod +x /opt/hytale/hytale-downloader && \
     rm /tmp/hytale-downloader.zip
