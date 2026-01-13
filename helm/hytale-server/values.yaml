@@ -1,0 +1,133 @@
+# Default values for hytale-server
+# This is a YAML-formatted file.
+
+# Number of replicas (game servers typically run as single instance)
+replicaCount: 1
+
+image:
+  repository: ghcr.io/d4m13n-d3v/hytale-docker
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Server configuration
+server:
+  # UDP port for QUIC protocol
+  port: 5520
+  # Java heap memory allocation
+  memory: "8G"
+  # Authentication mode: authenticated or offline
+  authMode: "authenticated"
+  # Patchline: release or pre-release
+  patchline: "release"
+  # Backup configuration
+  backup:
+    enabled: false
+    frequency: 30
+
+# Service configuration
+service:
+  type: NodePort
+  port: 5520
+  # Specify a nodePort if you want a fixed port (30000-32767)
+  # Leave empty for auto-assignment
+  nodePort: ""
+
+# Authentication tokens
+# IMPORTANT: For production, use existingSecret to reference a pre-created secret
+auth:
+  # Name of existing secret containing session-token and identity-token keys
+  existingSecret: ""
+  # Only used if existingSecret is not set (not recommended for production)
+  sessionToken: ""
+  identityToken: ""
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  # Storage class (leave empty for default)
+  storageClass: ""
+  # Access mode for PVCs
+  accessMode: ReadWriteOnce
+
+  # Universe/world data storage
+  universe:
+    size: 10Gi
+
+  # Mods storage
+  mods:
+    size: 1Gi
+
+  # Logs storage
+  logs:
+    size: 1Gi
+
+  # Config storage (permissions, whitelist, bans)
+  config:
+    size: 100Mi
+
+  # Backups storage
+  backups:
+    size: 20Gi
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: "4"
+    memory: 10Gi
+  requests:
+    cpu: "2"
+    memory: 8Gi
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity: {}
+
+# Liveness probe configuration
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

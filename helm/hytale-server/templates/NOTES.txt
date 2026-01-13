@@ -1,0 +1,67 @@
+Hytale Server has been deployed!
+
+=============================================================================
+CONNECTION INFORMATION
+=============================================================================
+
+{{- if eq .Values.service.type "NodePort" }}
+To connect to your Hytale server, use the following:
+
+  export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+  {{- if .Values.service.nodePort }}
+  export NODE_PORT={{ .Values.service.nodePort }}
+  {{- else }}
+  export NODE_PORT=$(kubectl get svc {{ include "hytale-server.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}')
+  {{- end }}
+  echo "Connect to: $NODE_IP:$NODE_PORT"
+
+{{- else if eq .Values.service.type "LoadBalancer" }}
+To get the external IP of your server, run:
+
+  kubectl get svc {{ include "hytale-server.fullname" . }} -w
+
+Once the EXTERNAL-IP is assigned, connect to: <EXTERNAL-IP>:{{ .Values.service.port }}
+{{- end }}
+
+=============================================================================
+AUTHENTICATION
+=============================================================================
+
+{{- if eq .Values.server.authMode "authenticated" }}
+Your server is running in AUTHENTICATED mode.
+
+{{- if .Values.auth.existingSecret }}
+Using existing secret: {{ .Values.auth.existingSecret }}
+{{- else if or .Values.auth.sessionToken .Values.auth.identityToken }}
+Auth tokens are configured via Helm values.
+{{- else }}
+⚠️  No auth tokens configured! The server needs authentication before players can connect.
+
+To authenticate, view the server logs and use the device login flow:
+  kubectl logs -f {{ include "hytale-server.fullname" . }}-0
+
+Look for the authentication instructions and visit: https://accounts.hytale.com/device
+{{- end }}
+{{- else }}
+Your server is running in OFFLINE mode (no authentication required).
+{{- end }}
+
+=============================================================================
+USEFUL COMMANDS
+=============================================================================
+
+View server logs:
+  kubectl logs -f {{ include "hytale-server.fullname" . }}-0
+
+Check pod status:
+  kubectl get pods -l app.kubernetes.io/name={{ include "hytale-server.name" . }}
+
+View persistent volumes:
+  kubectl get pvc -l app.kubernetes.io/name={{ include "hytale-server.name" . }}
+
+Execute command in container:
+  kubectl exec -it {{ include "hytale-server.fullname" . }}-0 -- /bin/bash
+
+=============================================================================
+
+For more information, visit: https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual

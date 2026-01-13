@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  hytale-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hytale-server:latest
+    container_name: hytale-server
+    restart: unless-stopped
+
+    # Environment configuration
+    environment:
+      - JAVA_MEMORY=${JAVA_MEMORY:-8G}
+      - SERVER_PORT=${SERVER_PORT:-5520}
+      - AUTH_MODE=${AUTH_MODE:-authenticated}
+      - PATCHLINE=${PATCHLINE:-release}
+      - ENABLE_BACKUP=${ENABLE_BACKUP:-false}
+      - BACKUP_FREQUENCY=${BACKUP_FREQUENCY:-30}
+      # Auth tokens (set in .env file)
+      - HYTALE_SERVER_SESSION_TOKEN=${HYTALE_SERVER_SESSION_TOKEN:-}
+      - HYTALE_SERVER_IDENTITY_TOKEN=${HYTALE_SERVER_IDENTITY_TOKEN:-}
+
+    # UDP port for QUIC protocol
+    ports:
+      - "${SERVER_PORT:-5520}:${SERVER_PORT:-5520}/udp"
+
+    # Persistent storage volumes
+    volumes:
+      - hytale-universe:/data/universe
+      - hytale-mods:/data/mods
+      - hytale-logs:/data/logs
+      - hytale-config:/data/config
+      - hytale-backups:/data/backups
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+        reservations:
+          memory: 8G
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Stop gracefully
+    stop_grace_period: 30s
+
+volumes:
+  hytale-universe:
+    driver: local
+  hytale-mods:
+    driver: local
+  hytale-logs:
+    driver: local
+  hytale-config:
+    driver: local
+  hytale-backups:
+    driver: local

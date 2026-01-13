@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!README.md
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Helm charts (not needed for Docker build)
+helm/
+
+# Claude plans
+.claude/
+
+# Local development
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.backup
