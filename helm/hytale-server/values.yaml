@@ -49,8 +49,8 @@ auth:
 # Persistent storage configuration
 persistence:
   enabled: true
-  # Storage class (leave empty for default)
-  storageClass: ""
+  # Storage class
+  storageClass: "local-path"
   # Access mode for PVCs
   accessMode: ReadWriteOnce
 
