@@ -28,6 +28,7 @@ RUN for i in 1 2 3; do \
       curl -fsSL https://downloader.hytale.com/hytale-downloader.zip -o /tmp/hytale-downloader.zip && break || sleep 5; \
     done && \
     unzip /tmp/hytale-downloader.zip -d /opt/hytale && \
+    mv /opt/hytale/hytale-downloader-linux-amd64 /opt/hytale/hytale-downloader && \
     chmod +x /opt/hytale/hytale-downloader && \
     rm /tmp/hytale-downloader.zip
 
