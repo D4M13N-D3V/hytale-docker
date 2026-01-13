@@ -1,6 +1,18 @@
 # Hytale Docker Server
 
+[![Build and Push](https://github.com/D4M13N-D3V/hytale-docker/actions/workflows/build-push.yml/badge.svg)](https://github.com/D4M13N-D3V/hytale-docker/actions/workflows/build-push.yml)
+[![Helm Chart](https://img.shields.io/badge/helm-chart-blue)](https://github.com/D4M13N-D3V/hytale-docker/packages)
+
 Docker and Kubernetes (Helm) deployment for Hytale dedicated game servers.
+
+## Features
+
+- Automatic server download and updates via official hytale-downloader
+- Persistent storage for worlds, mods, configs, and backups
+- Graceful shutdown handling
+- Pre-release channel support
+- Optional [playit.gg](https://playit.gg) tunnel for external access
+- Helm chart for Kubernetes deployment
 
 ## Requirements
 
@@ -11,81 +23,52 @@ Docker and Kubernetes (Helm) deployment for Hytale dedicated game servers.
 
 ## Quick Start
 
-### Docker Compose (Recommended for single server)
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/your-org/hytale-docker.git
-   cd hytale-docker
-   ```
-
-2. Copy and configure environment:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-3. Start the server:
-   ```bash
-   docker-compose up -d
-   ```
-
-4. View logs:
-   ```bash
-   docker-compose logs -f
-   ```
-
-5. Authenticate the server (required for authenticated mode):
-   - Watch the logs for the device login prompt
-   - Visit https://accounts.hytale.com/device
-   - Enter the code shown in the server console
-
-### Docker Run (Manual)
+### Docker Compose
 
 ```bash
-# Build the image
-docker build -t hytale-server .
+# Clone the repository
+git clone https://github.com/D4M13N-D3V/hytale-docker.git
+cd hytale-docker
 
-# Run the server
-docker run -d \
-  --name hytale-server \
-  -p 5520:5520/udp \
-  -e JAVA_MEMORY=8G \
-  -e AUTH_MODE=authenticated \
-  -v hytale-universe:/data/universe \
-  -v hytale-mods:/data/mods \
-  -v hytale-logs:/data/logs \
-  -v hytale-config:/data/config \
-  hytale-server
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
+
+# Start the server
+docker-compose up -d
+
+# View logs and get auth URL
+docker-compose logs -f
 ```
 
 ### Kubernetes (Helm)
 
-1. Build and push the Docker image to your registry:
-   ```bash
-   docker build -t your-registry/hytale-server:latest .
-   docker push your-registry/hytale-server:latest
-   ```
+```bash
+# Add the Helm repository
+helm repo add hytale https://d4m13n-d3v.github.io/hytale-docker
+helm repo update
 
-2. Create a secret for auth tokens (recommended):
-   ```bash
-   kubectl create secret generic hytale-auth \
-     --from-literal=session-token='your-session-token' \
-     --from-literal=identity-token='your-identity-token'
-   ```
+# Install the chart
+helm install hytale hytale/hytale-server -n hytale --create-namespace
 
-3. Install the Helm chart:
-   ```bash
-   helm install hytale ./helm/hytale-server \
-     --set image.repository=your-registry/hytale-server \
-     --set auth.existingSecret=hytale-auth
-   ```
+# Or install from local chart
+helm install hytale ./helm/hytale-server -n hytale --create-namespace
 
-4. Check the deployment:
-   ```bash
-   kubectl get pods
-   kubectl logs -f hytale-0
+# View logs for auth URL
+kubectl logs -f hytale-hytale-server-0 -n hytale
+```
+
+## Authentication
+
+Hytale servers require OAuth authentication before players can connect.
+
+1. Start the server and watch the logs
+2. Look for the authentication URL:
    ```
+   Please visit the following URL to authenticate:
+   https://oauth.accounts.hytale.com/oauth2/device/verify?user_code=XXXXXXXX
+   ```
+3. Visit the URL and authorize the server
 
 ## Configuration
 
@@ -93,71 +76,127 @@ docker run -d \
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JAVA_MEMORY` | `8G` | JVM heap size allocation |
-| `SERVER_PORT` | `5520` | UDP port for QUIC protocol |
+| `JAVA_MEMORY` | `8G` | JVM heap size |
+| `SERVER_PORT` | `5520` | UDP port (QUIC protocol) |
 | `AUTH_MODE` | `authenticated` | `authenticated` or `offline` |
 | `PATCHLINE` | `release` | `release` or `pre-release` |
 | `ENABLE_BACKUP` | `false` | Enable automatic backups |
-| `BACKUP_FREQUENCY` | `30` | Backup interval in minutes |
-| `HYTALE_SERVER_SESSION_TOKEN` | - | Session token for authentication |
-| `HYTALE_SERVER_IDENTITY_TOKEN` | - | Identity token for authentication |
+| `BACKUP_FREQUENCY` | `30` | Backup interval (minutes) |
+| `HYTALE_SERVER_SESSION_TOKEN` | - | Auth session token |
+| `HYTALE_SERVER_IDENTITY_TOKEN` | - | Auth identity token |
 
 ### Helm Values
 
-See `helm/hytale-server/values.yaml` for all configurable options.
-
-Key configurations:
-
 ```yaml
+# Image configuration
+image:
+  repository: ghcr.io/d4m13n-d3v/hytale-docker
+  tag: latest
+
 # Server settings
 server:
   port: 5520
   memory: "8G"
   authMode: "authenticated"
   patchline: "release"
+  backup:
+    enabled: false
+    frequency: 30
 
-# Service type (NodePort for bare metal, LoadBalancer for cloud)
+# Service configuration
 service:
   type: NodePort
+  port: 5520
   nodePort: ""  # Auto-assign or specify (30000-32767)
 
-# Persistent storage sizes
+# Persistent storage
 persistence:
+  storageClass: "local-path"  # Adjust for your cluster
   universe:
     size: 10Gi
   mods:
     size: 1Gi
+  logs:
+    size: 1Gi
 
 # Resource limits
 resources:
-  limits:
-    memory: 10Gi
-    cpu: "4"
   requests:
     memory: 8Gi
     cpu: "2"
+  limits:
+    memory: 10Gi
+    cpu: "4"
 
-# Use existing secret for auth tokens (recommended)
+# Playit.gg tunnel (optional)
+playit:
+  enabled: false
+  secretKey: ""  # Get from playit.gg dashboard
+
+# Auth tokens (use existingSecret for production)
 auth:
-  existingSecret: "hytale-auth"
+  existingSecret: ""
+  sessionToken: ""
+  identityToken: ""
 ```
 
-## Volumes / Persistent Data
+## Playit.gg Tunnel
 
-| Path | Description |
-|------|-------------|
-| `/data/universe` | World and player save data |
-| `/data/mods` | Installed modifications |
-| `/data/logs` | Server activity logs |
-| `/data/config` | Configuration files (config.json, permissions.json, etc.) |
-| `/data/backups` | Automatic backup storage |
+[Playit.gg](https://playit.gg) provides free tunneling to make your server accessible without port forwarding.
+
+### Docker Compose
+
+Add playit as a service in `docker-compose.yml`:
+
+```yaml
+services:
+  hytale-server:
+    # ... existing config ...
+
+  playit:
+    image: ghcr.io/playit-cloud/playit-agent:0.16
+    network_mode: host
+    environment:
+      - SECRET_KEY=your-secret-key-from-playit-dashboard
+```
+
+### Kubernetes
+
+Enable playit in Helm values:
+
+```bash
+helm upgrade hytale hytale/hytale-server -n hytale \
+  --set playit.enabled=true \
+  --set playit.secretKey=your-secret-key-from-playit-dashboard
+```
+
+Or create a secret:
+
+```bash
+kubectl create secret generic playit-secret -n hytale \
+  --from-literal=secret-key=your-secret-key
+
+helm upgrade hytale hytale/hytale-server -n hytale \
+  --set playit.enabled=true \
+  --set playit.existingSecret=playit-secret
+```
+
+## Persistent Data
+
+| Volume | Path | Description |
+|--------|------|-------------|
+| universe | `/data/universe` | World and player data |
+| mods | `/data/mods` | Server modifications |
+| logs | `/data/logs` | Server logs |
+| config | `/data/config` | JSON config files |
+| backups | `/data/backups` | Automatic backups |
 
 ## Networking
 
-Hytale uses **QUIC protocol over UDP** on port **5520** by default.
+Hytale uses **QUIC protocol over UDP** on port **5520**.
 
-### Docker
-Ensure your firewall allows UDP traffic on port 5520:
+### Firewall Rules
+
 ```bash
 # Linux (ufw)
 sudo ufw allow 5520/udp
@@ -167,108 +206,50 @@ sudo firewall-cmd --add-port=5520/udp --permanent
 sudo firewall-cmd --reload
 ```
 
-### Kubernetes
-The Helm chart creates a `NodePort` service by default. Ensure your node's firewall allows traffic on the assigned NodePort (30000-32767 range).
-
-## Authentication
-
-Hytale servers require authentication to accept player connections.
-
-### Interactive Authentication (Development)
-1. Start the server
-2. Watch logs for the device login prompt
-3. Visit https://accounts.hytale.com/device
-4. Enter the code from the server console
-
-### Token-Based Authentication (Production)
-For automated deployments, obtain authentication tokens and configure via environment variables or Kubernetes secrets.
-
-**Docker:**
-```bash
-export HYTALE_SERVER_SESSION_TOKEN="your-token"
-export HYTALE_SERVER_IDENTITY_TOKEN="your-token"
-docker-compose up -d
-```
-
-**Kubernetes:**
-```bash
-kubectl create secret generic hytale-auth \
-  --from-literal=session-token='your-session-token' \
-  --from-literal=identity-token='your-identity-token'
-
-helm install hytale ./helm/hytale-server --set auth.existingSecret=hytale-auth
-```
-
 ## Commands
 
 ### Docker
 
 ```bash
-# Start server
-docker-compose up -d
-
-# Stop server (graceful)
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Restart server
-docker-compose restart
-
-# Enter container shell
-docker-compose exec hytale-server bash
-
-# Rebuild after changes
-docker-compose build --no-cache
-docker-compose up -d
+docker-compose up -d          # Start
+docker-compose down           # Stop
+docker-compose logs -f        # Logs
+docker-compose restart        # Restart
+docker-compose exec hytale-server bash  # Shell
 ```
 
 ### Kubernetes
 
 ```bash
-# Install
-helm install hytale ./helm/hytale-server
-
-# Upgrade
-helm upgrade hytale ./helm/hytale-server
-
-# Uninstall
-helm uninstall hytale
-
-# View logs
-kubectl logs -f hytale-0
-
-# Exec into pod
-kubectl exec -it hytale-0 -- bash
-
-# Check status
-kubectl get pods,svc,pvc
+helm install hytale hytale/hytale-server -n hytale   # Install
+helm upgrade hytale hytale/hytale-server -n hytale   # Upgrade
+helm uninstall hytale -n hytale                       # Uninstall
+kubectl logs -f hytale-hytale-server-0 -n hytale     # Logs
+kubectl exec -it hytale-hytale-server-0 -n hytale -- bash  # Shell
 ```
 
 ## Troubleshooting
 
 ### Server won't start
-- Check logs: `docker-compose logs` or `kubectl logs`
-- Verify Java memory settings don't exceed available RAM
-- Ensure port 5520/udp is not in use
+- Check logs for errors
+- Verify Java memory doesn't exceed available RAM
+- Ensure port 5520/udp is available
 
 ### Players can't connect
-- Verify server is authenticated (check logs for "Authentication successful!")
-- Ensure UDP port 5520 is open in firewall
-- For Kubernetes, verify NodePort is accessible
+- Verify authentication completed (check logs)
+- Ensure UDP port 5520 is open
+- Check playit.gg tunnel status if using
 
 ### Download fails
 - Check network connectivity
-- Verify hytale-downloader can reach downloader.hytale.com
-- For pre-release, set `PATCHLINE=pre-release`
+- Try pre-release channel: `PATCHLINE=pre-release`
 
 ## Resources
 
 - [Hytale Server Manual](https://support.hytale.com/hc/en-us/articles/45326769420827-Hytale-Server-Manual)
 - [Hytale Hardware Requirements](https://hytale.com/news/2025/12/hytale-hardware-requirements)
-- [Hytale Official Website](https://hytale.com)
+- [Playit.gg Documentation](https://playit.gg/docs)
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT License
