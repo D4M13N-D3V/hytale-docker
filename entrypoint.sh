@@ -232,7 +232,7 @@ build_server_args() {
 
     # Auto-trigger auth login on boot if no tokens provided and in authenticated mode
     if [ -z "$HYTALE_SERVER_SESSION_TOKEN" ] && [ "$AUTH_MODE" = "authenticated" ]; then
-        SERVER_ARGS="${SERVER_ARGS} --boot-command \"/auth login\""
+        SERVER_ARGS="${SERVER_ARGS} --boot-command '/auth login'"
         # Log to stderr so it doesn't get captured in the args
         echo -e "${GREEN}[INFO]${NC} No session token provided - will trigger /auth login on boot" >&2
     fi
@@ -289,9 +289,9 @@ main() {
     log_info "Starting Hytale Server..."
     log_info "Use '/auth login' in the console to authenticate the server for player connections"
 
-    # Run server in foreground with exec so it receives stdin for console commands
+    # Run server in foreground with eval exec to properly handle quoted arguments
     # This replaces the shell process, allowing interactive console access
-    exec java ${JVM_ARGS} -jar HytaleServer.jar ${SERVER_ARGS}
+    eval exec java ${JVM_ARGS} -jar HytaleServer.jar ${SERVER_ARGS}
 }
 
 main "$@"
