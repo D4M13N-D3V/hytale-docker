@@ -5,9 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: hytale-server:latest
+    image: ghcr.io/d4m13n-d3v/hytale-docker:latest
     container_name: hytale-server
     restart: unless-stopped
+    stdin_open: true
+    tty: true
 
     # Environment configuration
     environment:
@@ -17,7 +19,7 @@ services:
       - PATCHLINE=${PATCHLINE:-release}
       - ENABLE_BACKUP=${ENABLE_BACKUP:-false}
       - BACKUP_FREQUENCY=${BACKUP_FREQUENCY:-30}
-      # Auth tokens (set in .env file)
+      # Auth tokens (optional - set in .env file for automated deployments)
       - HYTALE_SERVER_SESSION_TOKEN=${HYTALE_SERVER_SESSION_TOKEN:-}
       - HYTALE_SERVER_IDENTITY_TOKEN=${HYTALE_SERVER_IDENTITY_TOKEN:-}
 
@@ -54,6 +56,20 @@ services:
 
     # Stop gracefully
     stop_grace_period: 30s
+
+  # Optional: Playit.gg tunnel for external access without port forwarding
+  # To enable: Set PLAYIT_ENABLED=true and PLAYIT_SECRET_KEY in .env
+  playit:
+    image: ghcr.io/playit-cloud/playit-agent:0.16
+    container_name: hytale-playit
+    restart: unless-stopped
+    network_mode: host
+    profiles:
+      - playit
+    environment:
+      - SECRET_KEY=${PLAYIT_SECRET_KEY:-}
+    depends_on:
+      - hytale-server
 
 volumes:
   hytale-universe:
