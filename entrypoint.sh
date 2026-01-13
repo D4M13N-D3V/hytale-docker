@@ -64,28 +64,85 @@ download_server() {
         exit 1
     fi
 
-    # Find and extract the downloaded zip file
-    DOWNLOAD_ZIP=$(ls -t *.zip 2>/dev/null | head -1)
+    # List files in download directory for debugging
+    log_info "Files in /opt/hytale after download:"
+    ls -la /opt/hytale/
+
+    # Find the downloaded version zip (format: YYYY.MM.DD-hash.zip)
+    # Exclude any other zip files that might exist
+    DOWNLOAD_ZIP=$(ls -t /opt/hytale/*.zip 2>/dev/null | grep -E '[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[a-f0-9]+\.zip' | head -1)
+
+    if [ -z "$DOWNLOAD_ZIP" ]; then
+        # Fallback: try to find any zip that's not a known non-server zip
+        log_warn "Version-named zip not found, trying fallback..."
+        DOWNLOAD_ZIP=$(ls -t /opt/hytale/*.zip 2>/dev/null | head -1)
+    fi
+
     if [ -n "$DOWNLOAD_ZIP" ] && [ -f "$DOWNLOAD_ZIP" ]; then
+        log_info "Found download zip: $DOWNLOAD_ZIP"
+
+        # Clean up old extracted files
+        rm -rf /opt/hytale/extracted
+        mkdir -p /opt/hytale/extracted
+
         log_info "Extracting $DOWNLOAD_ZIP..."
         unzip -o "$DOWNLOAD_ZIP" -d /opt/hytale/extracted
         log_info "Extraction complete"
+
+        # Show extracted contents
+        log_info "Extracted contents:"
+        ls -la /opt/hytale/extracted/
+        if [ -d "/opt/hytale/extracted/Server" ]; then
+            ls -la /opt/hytale/extracted/Server/
+        fi
+    else
+        log_error "No download zip file found!"
+        ls -la /opt/hytale/
+        exit 1
     fi
 
-    # Move downloaded files to server directory
+    # Create server directory
     mkdir -p "${SERVER_DIR}"
 
-    # Check extracted directory first, then current directory
-    for src_dir in /opt/hytale/extracted /opt/hytale; do
-        if [ -d "${src_dir}/Server" ]; then
-            log_info "Copying Server from ${src_dir}..."
-            cp -r "${src_dir}/Server" "${SERVER_DIR}/"
-        fi
-        if [ -f "${src_dir}/Assets.zip" ]; then
-            log_info "Copying Assets.zip from ${src_dir}..."
-            cp "${src_dir}/Assets.zip" "${SERVER_DIR}/"
-        fi
-    done
+    # Copy files from extracted directory
+    if [ -d "/opt/hytale/extracted/Server" ]; then
+        log_info "Copying Server directory to ${SERVER_DIR}/..."
+        cp -r /opt/hytale/extracted/Server "${SERVER_DIR}/"
+        log_info "Server directory copied"
+    else
+        log_error "Server directory not found in extracted files!"
+        exit 1
+    fi
+
+    if [ -f "/opt/hytale/extracted/Assets.zip" ]; then
+        log_info "Copying Assets.zip to ${SERVER_DIR}/..."
+        cp /opt/hytale/extracted/Assets.zip "${SERVER_DIR}/"
+        log_info "Assets.zip copied"
+    else
+        log_error "Assets.zip not found in extracted files!"
+        exit 1
+    fi
+
+    # Verify files were copied correctly
+    log_info "Verifying copied files..."
+    log_info "Contents of ${SERVER_DIR}:"
+    ls -la "${SERVER_DIR}/"
+    log_info "Contents of ${SERVER_DIR}/Server:"
+    ls -la "${SERVER_DIR}/Server/" 2>/dev/null || log_error "Server subdirectory not found!"
+
+    if [ -f "${SERVER_JAR}" ]; then
+        log_info "Server JAR verified at: ${SERVER_JAR}"
+    else
+        log_error "Server JAR not found at expected location: ${SERVER_JAR}"
+        exit 1
+    fi
+
+    if [ -f "${ASSETS_FILE}" ]; then
+        log_info "Assets file verified at: ${ASSETS_FILE}"
+    else
+        log_error "Assets file not found at expected location: ${ASSETS_FILE}"
+        exit 1
+    fi
 }
 
 # Create symlinks for persistent data
